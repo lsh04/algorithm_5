@@ -1,11 +1,11 @@
+# 29 line  변수와 32 line 주석 참고
+
 # 수정 내용
-
-# 29 line 변수와 33 line 주석 참고
-# 곡 선택: 해당 곡으로 이동 가능
-# 게임 옵션: 테두리 색상 변경과 실시간 변화
-# 게임 설명: 1. 타격 이펙트, 2. 콤보, 콤보 숫자 추가
-# 불필요 코드 정리, 일부 코드 수정, 추가
-
+# 28 line  "랭킹 보기" 추가
+# 240 line 랭킹 UI와 뒤로가기 버튼 추가 (game state = 5) <- 여기에서 수정 하시면 돼요
+# 편의성 수정: 각각의 뒤로가기 선택시 해당됐던 문구에 상호작용이 돼 있도록 수정
+# ex) 게임 옵션 뒤로가기 선택을 눌렀을 때 메인 화면의 상호작용 키(빨간색) 이/가 무조건 곡 선택으로 되어있었음 다시 위아래 키를 눌러야 하는 번거로움 최소화
+# 게임 설명에 진행바 관련 설명 추가
 import pygame, os
 
 # Pygame 초기화
@@ -25,12 +25,12 @@ RED = (255, 0, 0)
 BLUE = (30, 144, 255)
 
 # 메인 메뉴 항목 및 서브 메뉴 항목 설정
-main_menu_items = ["리듬게임", "곡 선택", "게임 옵션", "게임 설명", "게임 종료"]
+main_menu_items = ["리듬게임", "곡 선택", "게임 옵션", "게임 설명", "랭킹 보기","게임 종료"]
 song_menu_items = ["곡1", "곡2", "뒤로가기"]
 
 #게임 실행 파일
 song_files = {
-    "곡1": "RTMG_4",        # song_menu_tiems 에 있는 "곡1" 을 "음악"으로 수정 시
+    "곡1": "RTMG_5",        # song_menu_tiems 에 있는 "곡1" 을 "음악"으로 수정 시
                             # song files 에 있는 "곡1" 도 "음악"으로 변경해야함, 꼭 뒤로가기 앞에 적을 것
     "곡2": "RTMG_3 copy",   # song files 에 있는  "RTMG_3"는 실행할 파일 적기
 }                           # 테스트 해볼려고 '개인적으로' 곡2 누를시 RTMG_3_copy 파일로 가는걸 만들었습니다.
@@ -48,7 +48,8 @@ spin = 0
 game_description_texts = [
     "왼쪽부터 D, F, J, K 키로 노트를 입력할 수 있습니다.",
     "연속 성공 시 콤보가 올라가며, 판정에 따라 perfect, great 등 시각적 효과가 추가됩니다.",
-    "게임을 시작한 후, 우측 상단에 현재까지의 플레이 시간을 확인할 수 있습니다.",
+    "플레이 화면 중앙 상단에 현재 게임 진행 상황이 표시됩니다.",
+    "우측 상단에 현재까지의 플레이 시간을 확인할 수 있습니다.",
     "초록색 바가 다 닳으면 게임오버입니다. (15번의 노트를 놓치면 게임 종료)",
 ]
 
@@ -56,7 +57,7 @@ game_description_texts = [
 current_description_page = 0
 
 # design 에서의 함수 호출==========================================================================================
-from design import hitbox_line_color, playtime_explain, count_effect_color, health_bar_explain, push_button_xoffset,combo_and_rate, update_outline_color,color_change
+from design import hitbox_line_color, playtime_explain, count_effect_color, health_bar_explain, push_button_xoffset,combo_and_rate, update_outline_color,color_change, music_length
 
 # 방향키에 따른 <> 색상 설정
 left_bracket_active = False
@@ -198,12 +199,17 @@ while running:
                     push_button_xoffset(x_offset)
                     combo_and_rate(screen, x_offset, combo_value=15)                
 
-                if current_description_page in [2]:  # 2:게임시간
+                if current_description_page in [2]:  # 2: 진행바 표시
+                    x_offset = 350
+                    music_length(x_offset)
+
+
+                if current_description_page in [3]:  # 3: 게임시간
                     a_offset = 350
                     z_offset = 50
                     playtime_explain(x_offset, z_offset)
 
-                if current_description_page in [3]:  # 3:게임오버
+                if current_description_page in [4]: # 4:게임오버
                     c_offset = 1000
                     d_offset = 400
                     e_offset = 100
@@ -231,6 +237,14 @@ while running:
             back_rect = back_text.get_rect(topleft=(20, h - 100))
             screen.blit(back_text, back_rect)
 
+# 랭킹 보기 시스템 화면=================================================================================================
+    elif game_state == 5:
+
+            # 뒤로가기 버튼(현재 좌측 하단에 위치)
+            back_text = font.render("뒤로가기", True, RED)
+            back_rect = back_text.get_rect(topleft=(20, h - 100)) # topleft = 왼쪽을 기준으로, 20 = x 좌표 이동, h - 100 = 높이
+            screen.blit(back_text, back_rect)
+#===========================================================================================================================
     # 이벤트 처리(키입력 및 선택)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -257,6 +271,8 @@ while running:
                     elif selected_item == 3:
                         game_state = 4
                     elif selected_item == 4:
+                        game_state = 5
+                    elif selected_item == 5:
                         running = False
 
             # 곡 선택 화면(키)
@@ -297,7 +313,7 @@ while running:
                 elif event.key == pygame.K_RETURN:
                     if selected_item == len(options_menu_items) - 1:
                         game_state = 0
-                        selected_item = 1
+                        selected_item = 2
 
             # 게임 설명(키)
             elif game_state == 4:
@@ -319,8 +335,13 @@ while running:
                     elif event.key == pygame.K_RETURN:
                         if selected_item == len(description_items):  # '뒤로가기' 선택 시
                             game_state = 0  # 메인 화면으로 이동
-                            selected_item = 1
-                
+                            selected_item = 3
+
+            # 랭킹 보기의 뒤로가기 키 설정 (Enter 누를 시 뒤로가기)
+            elif game_state == 5:  # 현재 상태가 랭킹 보기 화면일 때
+                if event.key == pygame.K_RETURN:  # Enter 키를 눌렀을 경우
+                    game_state = 0  # 메인 화면으로 이동
+                    selected_item = 4  # 선택된 아이템 초기화
 
     # 화면 업데이트
     pygame.display.flip()

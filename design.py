@@ -1,7 +1,8 @@
 # UIUX.py 에 필요한 함수들을 저장한 곳, 게임 설명 및 옵션 관련 부분
 
 # 수정 내용
-# 색상 목록 정의, 테두리 색상 인덱스, 색상 변경 함수 추가, 불필요 코드 정리, 일부 코드 수정
+# 119 line, 게임옵션 색상 변경함수, 옆 테두리 (255,255,255) -> outline_color 로 변경
+# 게임 설명을 위한 진행바 함수 추가
 import pygame, math, os
 
 w = 1600
@@ -116,7 +117,7 @@ def color_change(x_offset):
     outline_color = get_outline_color()
     pygame.draw.rect(screen, outline_color, (785 - w / 8 + x_offset, -int(w / 100), 431, h + int(w / 50)), int(w / 100)) #gear line 테두리선
     pygame.draw.rect(screen, (0, 0, 0), (785 - w / 8 + x_offset, (h / 12) * 9, 431, h / 2))
-    pygame.draw.rect(screen, (255, 255, 255),(785 - w / 8 + x_offset, (h / 12) * 9, 431, h /2), int(h /100)) # 옆 테두리
+    pygame.draw.rect(screen, outline_color,(785 - w / 8 + x_offset, (h / 12) * 9, 431, h /2), int(h /100)) # 옆 테두리
 
 # 생명력=========================================
 max_health = 100
@@ -171,3 +172,30 @@ def push_button_xoffset(x_offset):
                         (w / 2 + w / 58 + x_offset, (h / 48) * 43 + (h / 48) * (keys[2] * 1.2), w / 27, h / 64), int(h / 150))
         pygame.draw.rect(screen, (50,50, 50),
                         (w / 2 + w / 58 + x_offset, (h / 48) * 39 + (h / 48) * keys[2], w / 27, h / 8), int(h / 150))
+        
+            # 음악 진행 상황 그리기=====================================================================================================================================
+def music_length(x_offset):
+    bar_start = (640, 450)
+    bar_end = (970, 450)
+    bar_length = bar_end[0] - bar_start[0]
+
+    # 색상 정의
+    sky_blue = pygame.Color(135, 206, 235)
+
+    # 진행 비율을 고정값으로 설정 (예: 0.5는 50% 진행)
+    progress = 0.2  # 0.0에서 1.0 사이 값으로 설정
+
+    # 진행 게이지 크기 및 위치 계산
+    music_bar_width = bar_length * progress
+    music_bar_height = 10
+    music_bar_x = bar_start[0]
+    music_bar_y = bar_start[1] - music_bar_height // 2
+
+    # 진행 게이지 배경 (하얀색)
+    pygame.draw.rect(screen, (255, 255, 255), (bar_start[0] + x_offset, music_bar_y, bar_length, music_bar_height), 2)
+    # 현재 진행 게이지 (하늘색)
+    pygame.draw.rect(screen, sky_blue, (music_bar_x + x_offset, music_bar_y, music_bar_width, music_bar_height))
+    # 현재 진행 게이지 끝 점
+    dot_x = bar_start[0] + progress * bar_length
+    dot_y = bar_start[1]
+    pygame.draw.circle(screen, (255, 255, 255), (int(dot_x) + x_offset, dot_y), 10)
