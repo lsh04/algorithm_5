@@ -1,6 +1,11 @@
-# 미완성 파일입니다.
-# 기존의 RTMG_3을 쓰시면 되는데 RTMG_3코드의 디자인 관련된 부분에서 코드 변경이 있을 수 있습니다. (게임 플레이 영향 x)
-# " DungGeunMo.ttf " 는 font 폴더 에다가 넣어 주세요. 나머지는 따로 넣을 필요 x
+# 수정 내용
+
+# 29 line 변수와 33 line 주석 참고
+# 곡 선택: 해당 곡으로 이동 가능
+# 게임 옵션: 테두리 색상 변경과 실시간 변화
+# 게임 설명: 1. 타격 이펙트, 2. 콤보, 콤보 숫자 추가
+# 불필요 코드 정리, 일부 코드 수정, 추가
+
 import pygame, os
 
 # Pygame 초기화
@@ -13,23 +18,24 @@ screen = pygame.display.set_mode((w, h))
 
 # 한글 폰트 설정
 font_path = os.path.join("font", "DungGeunMo.ttf")
-keys = [1, 1, 1, 1]
+
 # 색상 정의
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (30, 144, 255)
-OUTLINE_COLORS = [
-    (255, 255, 255),  # 효과 1 - 흰색
-    (255, 0, 0),      # 효과 2 - 빨간색
-    (0, 255, 0),      # 효과 3 - 녹색
-    (0, 0, 255),      # 효과 4 - 파란색
-    (255, 255, 0)     # 효과 5 - 노란색
-]
 
 # 메인 메뉴 항목 및 서브 메뉴 항목 설정
 main_menu_items = ["리듬게임", "곡 선택", "게임 옵션", "게임 설명", "게임 종료"]
-song_menu_items = ["곡1", "곡2", "곡3", "뒤로가기"]
-options_menu_items = ["테두리", "효과음", "노트", "뒤로가기"]
+song_menu_items = ["곡1", "곡2", "뒤로가기"]
+
+#게임 실행 파일
+song_files = {
+    "곡1": "RTMG_4",        # song_menu_tiems 에 있는 "곡1" 을 "음악"으로 수정 시
+                            # song files 에 있는 "곡1" 도 "음악"으로 변경해야함, 꼭 뒤로가기 앞에 적을 것
+    "곡2": "RTMG_3 copy",   # song files 에 있는  "RTMG_3"는 실행할 파일 적기
+}                           # 테스트 해볼려고 '개인적으로' 곡2 누를시 RTMG_3_copy 파일로 가는걸 만들었습니다.
+
+options_menu_items = ["테두리", "뒤로가기"]
 description_items = ["뒤로가기"]
 selected_item = 1
 selected_effect = [0, 0, 0]  # 각 항목의 기본 선택 효과 (0~4 순환)
@@ -41,7 +47,7 @@ spin = 0
 # 게임 설명 문구 리스트
 game_description_texts = [
     "왼쪽부터 D, F, J, K 키로 노트를 입력할 수 있습니다.",
-    "콤보를 연속으로 성공하면 콤보 숫자가 올라갑니다.",
+    "연속 성공 시 콤보가 올라가며, 판정에 따라 perfect, great 등 시각적 효과가 추가됩니다.",
     "게임을 시작한 후, 우측 상단에 현재까지의 플레이 시간을 확인할 수 있습니다.",
     "초록색 바가 다 닳으면 게임오버입니다. (15번의 노트를 놓치면 게임 종료)",
 ]
@@ -49,19 +55,12 @@ game_description_texts = [
 # 현재 설명 페이지
 current_description_page = 0
 
-# 테두리 사각형 위치와 크기 설정 (곡 선택 화면에서 가운데로 이동)
-outline_rect = pygame.Rect(1000, 100, 300, 600)
-
 # design 에서의 함수 호출==========================================================================================
-from design import hitbox_line_color, playtime_explain, count_effect_color, health_bar_explain, push_button_xoffset
+from design import hitbox_line_color, playtime_explain, count_effect_color, health_bar_explain, push_button_xoffset,combo_and_rate, update_outline_color,color_change
 
 # 방향키에 따른 <> 색상 설정
 left_bracket_active = False
 right_bracket_active = False
-
-# 테두리 색상 그리기 함수, 나중에 바꿀 예정
-def draw_outline_color(screen, color_index, outline_rect):
-    pygame.draw.rect(screen, OUTLINE_COLORS[color_index], outline_rect, 5)
 
 # 줄바꿈(game_state 4)
 def wrap_text(text, font, max_width):
@@ -122,8 +121,8 @@ while running:
         for i, option in enumerate(options_menu_items):
             # 텍스트 위치
             x_rendering = 400
-            y_rendering = 150 + i * 100
-
+            y_rendering = 400 + i * 100
+            x_offset = 350
             # 선택된 항목일 경우(꺽쇠, 방향키)
             if i < len(options_menu_items) - 1 and i == selected_item:
                 left_bracket_color = RED if left_bracket_active else WHITE
@@ -157,15 +156,18 @@ while running:
                 # 텍스트 렌더링
                 screen.blit(text, (text_x, y_rendering))
 
-
-        # 오른쪽 테두리 사각형 그리기 (게임 옵션에서 선택된 색상으로)
         outline_color_index = selected_effect[0]  # 테두리 색상을 선택한 값으로 업데이트
-        draw_outline_color(screen, outline_color_index, outline_rect)
+        update_outline_color(outline_color_index)  # 색상 업데이트
+        color_change(x_offset)
+        push_button_xoffset(x_offset)
 
-    # 게임 화면 (곡1~3 선택 후 진입), 일부 수정 예정
+# 게임 화면 (곡1~3 선택 후 진입)
     elif game_state == 3:
-        import RTMG_3
-        RTMG_3.run_game()
+        selected_song = song_menu_items[selected_item]  # 선택한 곡 이름
+        song_file = song_files.get(selected_song)  # 해당 곡에 맞는 파일 가져오기
+        song_module = __import__(song_file)  # 모듈을 동적으로 불러오기
+        song_module.run_game()  # 해당 모듈의 run_game 함수 실행
+
 
     # 게임 설명 화면
     elif game_state == 4:
@@ -181,26 +183,34 @@ while running:
                 description_text = font.render(line, True, WHITE)
                 rect = description_text.get_rect(topleft=(200, y_offset)) # 왼쪽에 맞춰서 출력
             
-                if current_description_page in [0, 1]:  # 0: D, F, J, K 키 안내 / 1: 콤보 안내
+                if current_description_page in [0]:  # 0: D, F, J, K 키 안내
                     x_offset = 350
-                    count_effect_color(x_offset)
+                    keys = [1,1,1,1]
+                    count_effect_color(x_offset, keys)
                     hitbox_line_color(x_offset)
                     push_button_xoffset(x_offset)
-                
 
-                if current_description_page in [2]:  # 게임시간
+                if current_description_page in [1]:  #1: 콤보 안내
+                    x_offset = 350
+                    keys = [0,0,0,0]
+                    count_effect_color(x_offset, keys)
+                    hitbox_line_color(x_offset)
+                    push_button_xoffset(x_offset)
+                    combo_and_rate(screen, x_offset, combo_value=15)                
+
+                if current_description_page in [2]:  # 2:게임시간
                     a_offset = 350
                     z_offset = 50
                     playtime_explain(x_offset, z_offset)
 
-                if current_description_page in [3]:  # 게임오버
+                if current_description_page in [3]:  # 3:게임오버
                     c_offset = 1000
                     d_offset = 400
                     e_offset = 100
                     health_bar_explain (c_offset, d_offset, e_offset)
 
                 screen.blit(description_text, rect )
-                y_offset += font.get_height()  # 한 줄씩 내려서 표시
+                y_offset += font.get_height()  # 한 줄씩 내려서 표시(줄바꿈 관련)
 
             # 좌우 키 설명
             left_bracket_color = RED if left_bracket_active else WHITE
@@ -261,7 +271,7 @@ while running:
                         selected_item = 1
                     else:
                         game_state = 3  # 곡 선택 시 게임 화면으로 이동
-                        selected_item = 1
+                        song_selected = song_menu_items[selected_item]
 
             # 게임 옵션 화면(키)
             elif game_state == 2:
@@ -269,22 +279,25 @@ while running:
                     selected_item = (selected_item + 1) % len(options_menu_items)
                 elif event.key == pygame.K_UP:
                     selected_item = (selected_item - 1) % len(options_menu_items)
+                
                 elif event.key == pygame.K_LEFT:
-                    if selected_item < len(options_menu_items) - 1:
+                    if selected_item < len(options_menu_items) - 1:                       
+                        selected_effect[selected_item] = (selected_effect[selected_item] - 1) % 5
+                        update_outline_color(selected_effect[selected_item])  # 색상 업데이트
                         left_bracket_active = True
                         right_bracket_active = False
-                        selected_effect[selected_item] = (selected_effect[selected_item] - 1) % 5
+                
                 elif event.key == pygame.K_RIGHT:
-                    if selected_item < len(options_menu_items) - 1:
+                    if selected_item < len(options_menu_items) - 1:                        
+                        selected_effect[selected_item] = (selected_effect[selected_item] + 1) % 5
+                        update_outline_color(selected_effect[selected_item])  # 색상 업데이트
                         left_bracket_active = False
                         right_bracket_active = True
-                        selected_effect[selected_item] = (selected_effect[selected_item] + 1) % 5
+                
                 elif event.key == pygame.K_RETURN:
                     if selected_item == len(options_menu_items) - 1:
                         game_state = 0
                         selected_item = 1
-                    else:
-                        print(f"{options_menu_items[selected_item]} {selected_effect[selected_item] + 1} 활성화됨")
 
             # 게임 설명(키)
             elif game_state == 4:
