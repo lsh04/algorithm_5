@@ -5,6 +5,7 @@
 # 448 line (255,255,255) -> outline_color 로 수정, 너비 값 x위치 값 수정
 
 # -*- coding: cp949 -*-
+
 import subprocess
 import sys
 
