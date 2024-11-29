@@ -6,6 +6,7 @@
 # 편의성 수정: 각각의 뒤로가기 선택시 해당됐던 문구에 상호작용이 돼 있도록 수정
 # ex) 게임 옵션 뒤로가기 선택을 눌렀을 때 메인 화면의 상호작용 키(빨간색) 이/가 무조건 곡 선택으로 되어있었음 다시 위아래 키를 눌러야 하는 번거로움 최소화
 # 게임 설명에 진행바 관련 설명 추가
+
 import pygame, os
 
 # Pygame 초기화
@@ -24,16 +25,24 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (30, 144, 255)
 
+# 이미지 로드 (게임설명 5페이지의 FUL COOMBO)
+image_path = "FULL_COMBO.jpg"  # 이미지 경로(이미지 파일명)
+combo_image = pygame.image.load(image_path)  # 이미지 로드
+combo_image = pygame.transform.scale(combo_image, (750, 430))  # 크기 조정 (730x430)
+
+# 이미지 위치
+x, y = 800, 270
+
 # 메인 메뉴 항목 및 서브 메뉴 항목 설정
 main_menu_items = ["리듬게임", "곡 선택", "게임 옵션", "게임 설명", "랭킹 보기","게임 종료"]
 song_menu_items = ["곡1", "곡2", "뒤로가기"]
 
 #게임 실행 파일
 song_files = {
-    "곡1": "RTMG_5",        # song_menu_tiems 에 있는 "곡1" 을 "음악"으로 수정 시
-                            # song files 에 있는 "곡1" 도 "음악"으로 변경해야함, 꼭 뒤로가기 앞에 적을 것
-    "곡2": "RTMG_3 copy",   # song files 에 있는  "RTMG_3"는 실행할 파일 적기
-}                           # 테스트 해볼려고 '개인적으로' 곡2 누를시 RTMG_3_copy 파일로 가는걸 만들었습니다.
+    "곡1": "RTMG_S1.py",        # song_menu_tiems 에 있는 "곡1" 을 "음악"으로 수정 시
+                                # song files 에 있는 "곡1" 도 "음악"으로 변경해야함, 꼭 뒤로가기 앞에 적을 것
+    "곡2": "RTMG_S2.py",        # song files 에 있는  "RTMG_3"는 실행할 파일 적기
+}
 
 options_menu_items = ["테두리", "뒤로가기"]
 description_items = ["뒤로가기"]
@@ -51,6 +60,7 @@ game_description_texts = [
     "플레이 화면 중앙 상단에 현재 게임 진행 상황이 표시됩니다.",
     "우측 상단에 현재까지의 플레이 시간을 확인할 수 있습니다.",
     "초록색 바가 다 닳으면 게임오버입니다. (15번의 노트를 놓치면 게임 종료)",
+    "풀콤보 시 새로운 문구가 나타납니다."
 ]
 
 # 현재 설명 페이지
@@ -86,6 +96,46 @@ def wrap_text(text, font, max_width):
 
     lines.append(current_line)  # 마지막 줄을 결과에 추가
     return lines
+
+
+#=============랭킹===================================================================
+MAXRANK = 10  # 최대 랭킹 수
+
+class Rank:
+    def __init__(self, name, score):
+        self.name = name
+        self.score = score
+
+rankList = []
+
+def load_ranking():
+    global rankList
+    try:
+        with open("ranker.txt", "r") as file:
+            rankList = []
+            for line in file:
+                name, score = line.strip().split()
+                rankList.append(Rank(name, int(score)))
+    except FileNotFoundError:
+        print("랭킹 파일이 없습니다.")
+
+def save_ranking():
+    with open("ranker.txt", "w") as file:
+        for rank in rankList:
+            if rank.score == 0:
+                break
+            file.write(f"{rank.name} {rank.score}\n")
+
+def sort_ranking():
+    global rankList
+    rankList.sort(key=lambda x: x.score, reverse=True)
+
+def update_ranking(player_name, score):
+    global rankList
+    rankList.append(Rank(player_name, score))
+    sort_ranking()
+    rankList = rankList[:MAXRANK]  # 상위 MAXRANK개만 유지
+    save_ranking()
 
 # 게임 루프
 running = True
@@ -217,6 +267,9 @@ while running:
 
                 screen.blit(description_text, rect )
                 y_offset += font.get_height()  # 한 줄씩 내려서 표시(줄바꿈 관련)
+                
+                if current_description_page in [5]: # 5: 콤보, 랭킹
+                    screen.blit(combo_image, (x, y))
 
             # 좌우 키 설명
             left_bracket_color = RED if left_bracket_active else WHITE
@@ -244,6 +297,20 @@ while running:
             back_text = font.render("뒤로가기", True, RED)
             back_rect = back_text.get_rect(topleft=(20, h - 100)) # topleft = 왼쪽을 기준으로, 20 = x 좌표 이동, h - 100 = 높이
             screen.blit(back_text, back_rect)
+
+
+            load_ranking()
+            score_font = pygame.font.Font(None, 72)
+            score_text = score_font.render("Ranking", True, (255, 255, 255))
+            screen.blit(score_text, (200, 100))
+            y_offset = 200
+            for rank in rankList:
+                score_text = score_font.render(f"{rank.name}: {rank.score}", True, (255, 255, 255))
+                screen.blit(score_text, (200, y_offset))
+                y_offset += 50  # 다음 랭킹을 위해 y 좌표 조정
+
+
+            pygame.display.flip()
 #===========================================================================================================================
     # 이벤트 처리(키입력 및 선택)
     for event in pygame.event.get():
@@ -260,7 +327,7 @@ while running:
                 elif event.key == pygame.K_UP:
                     selected_item = (selected_item - 1) % len(main_menu_items)
                     if selected_item == 0:
-                        selected_item = 4
+                        selected_item = 5
                 elif event.key == pygame.K_RETURN:
                     if selected_item == 1:
                         game_state = 1
@@ -295,7 +362,7 @@ while running:
                     selected_item = (selected_item + 1) % len(options_menu_items)
                 elif event.key == pygame.K_UP:
                     selected_item = (selected_item - 1) % len(options_menu_items)
-                
+                # 게임 옵션 화면(키)
                 elif event.key == pygame.K_LEFT:
                     if selected_item < len(options_menu_items) - 1:                       
                         selected_effect[selected_item] = (selected_effect[selected_item] - 1) % 5
